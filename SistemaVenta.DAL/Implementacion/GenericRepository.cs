@@ -46,18 +46,37 @@ namespace SistemaVenta.DAL.Implementacion
                 throw;
             }
         }
-        public Task<bool> Editar(TEntidad entidad)
+        public async Task<bool> Editar(TEntidad entidad)
         {
-            throw new NotImplementedException();
+            try
+            {
+                _dbVentaContext.Update(entidad);
+                await _dbVentaContext.SaveChangesAsync();
+                return true;
+            }
+            catch
+            {
+                throw;
+            }
         }
-        public Task<bool> Eliminar(TEntidad entidad)
+        public async Task<bool> Eliminar(TEntidad entidad)
         {
-            throw new NotImplementedException();
+            try
+            {
+                _dbVentaContext.Remove(entidad);
+                await _dbVentaContext.SaveChangesAsync();
+                return true;
+            }
+            catch
+            {
+                throw;
+            }
         }
 
-        public Task<IQueryable<TEntidad>> Consultar(Expression<Func<TEntidad, bool>> filtro = null)
+        public async Task<IQueryable<TEntidad>> Consultar(Expression<Func<TEntidad, bool>> filtro = null)
         {
-            throw new NotImplementedException();
+            IQueryable<TEntidad> queryEntidad = filtro == null ? _dbVentaContext.Set<TEntidad>() : _dbVentaContext.Set<TEntidad>().Where(filtro);
+            return queryEntidad;
         }
     }
 }
