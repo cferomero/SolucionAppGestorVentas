@@ -7,8 +7,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using SistemaVenta.DAL.DBContext;
 using Microsoft.EntityFrameworkCore;
-//using SistemaVenta.DAL.Interfaces;
-//using SistemaVenta.DAL.Implementacion;
+using SistemaVenta.DAL.Interfaces;
+using SistemaVenta.DAL.Implementacion;
 //using SistemaVenta.BLL.Interfaces;
 //using SistemaVenta.BLL.Implementacion;
 
@@ -23,6 +23,13 @@ namespace SistemaVenta.IOC
             {
                 options.UseSqlServer(Configuration.GetConnectionString("CadenaSQL"));
             });
+
+
+            // *** INYECCIN DEPENDENCIA PARA NUESTRO REPOSITORY GENERIC *****
+            // utlizamos e implementamos la interfaz y la clase generica de manera trasient
+            // Trasient, que varia sus valores segun sea necesario
+            Services.AddTransient(typeof(IGenericRepository<>), typeof(GenericRepository<>));
+            Services.AddScoped<IVentaRepository, VentaRepository>();
         }
     }
 }
