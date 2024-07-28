@@ -9,8 +9,8 @@ using SistemaVenta.DAL.DBContext;
 using Microsoft.EntityFrameworkCore;
 using SistemaVenta.DAL.Interfaces;
 using SistemaVenta.DAL.Implementacion;
-//using SistemaVenta.BLL.Interfaces;
-//using SistemaVenta.BLL.Implementacion;
+using SistemaVenta.BLL.Interfaces;
+using SistemaVenta.BLL.Implementacion;
 
 namespace SistemaVenta.IOC
 {
@@ -25,11 +25,14 @@ namespace SistemaVenta.IOC
             });
 
 
-            // *** INYECCIN DEPENDENCIA PARA NUESTRO REPOSITORY GENERIC *****
+            // *** INYECCION DEPENDENCIA PARA NUESTRO REPOSITORY GENERIC *****
             // utlizamos e implementamos la interfaz y la clase generica de manera trasient
             // Trasient, que varia sus valores segun sea necesario
             Services.AddTransient(typeof(IGenericRepository<>), typeof(GenericRepository<>));
             Services.AddScoped<IVentaRepository, VentaRepository>();
+
+            // inyeccion del ICorreoService y sus metodo
+            Services.AddScoped<ICorreoService, CorreoService>();
         }
     }
 }
