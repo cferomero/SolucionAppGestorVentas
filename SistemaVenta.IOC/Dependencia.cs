@@ -26,13 +26,16 @@ namespace SistemaVenta.IOC
 
 
             // *** INYECCION DEPENDENCIA PARA NUESTRO REPOSITORY GENERIC *****
+
             // utlizamos e implementamos la interfaz y la clase generica de manera trasient
             // Trasient, que varia sus valores segun sea necesario
             Services.AddTransient(typeof(IGenericRepository<>), typeof(GenericRepository<>));
             Services.AddScoped<IVentaRepository, VentaRepository>();
 
-            // inyeccion del ICorreoService y sus metodo
+            // inyeccion del ICorreoService y sus metodos
             Services.AddScoped<ICorreoService, CorreoService>();
+            // inyeccion del IFirebaseService y sus metodos
+            Services.AddScoped<IFireBaseservice, FireBaseService>();
         }
     }
 }
