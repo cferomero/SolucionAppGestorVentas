@@ -32,10 +32,11 @@ namespace SistemaVenta.IOC
             Services.AddTransient(typeof(IGenericRepository<>), typeof(GenericRepository<>));
             Services.AddScoped<IVentaRepository, VentaRepository>();
 
-            // inyeccion del ICorreoService y sus metodos
             Services.AddScoped<ICorreoService, CorreoService>();
-            // inyeccion del IFirebaseService y sus metodos
             Services.AddScoped<IFireBaseservice, FireBaseService>();
+
+            Services.AddScoped<IUtilidadesService, UtilidadesService>();
+            Services.AddScoped<IRolService, RolService>();
         }
     }
 }
