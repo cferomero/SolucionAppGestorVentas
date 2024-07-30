@@ -39,7 +39,6 @@ namespace SistemaVenta.BLL.Implementacion
         
         public async Task<List<Usuario>> Lista()
         {
-            //
             IQueryable<Usuario> query = await _repository.Consultar();
             return query.Include(r => r.IdRolNavigation).ToList(); // incluimos tambien la logica del usuario y del rol
         }
@@ -170,33 +169,170 @@ namespace SistemaVenta.BLL.Implementacion
         
         
         // Logica para eliminar un usuario
-        public Task<bool> Eliminar(int IdUsuario)
+        public async Task<bool> Eliminar(int IdUsuario)
         {
-            throw new NotImplementedException();
-        }
-        public Task<Usuario> OtenerPorCredenciales(string correo, string clave)
-        {
-            throw new NotImplementedException();
-        }
-        public Task<Usuario> OtenerPorId(int IdUsuario)
-        {
-            throw new NotImplementedException();
+            try
+            {
+                // factorizar codigo
+                Usuario usuario_encontrado = await _repository.Obtener(u => u.IdUsuario == IdUsuario) ??  throw new TaskCanceledException("El usuario no existe");
+                //Usuario usuario_encontrado = await _repository.Obtener(u => u.IdUsuario == IdUsuario);
+                //if(usuario_encontrado == null)
+                //{
+                //    throw new TaskCanceledException("El usuario no existe");
+                //}
+
+                string nombreFoto = usuario_encontrado.NombreFoto;
+                bool respuesta = await _repository.Eliminar(usuario_encontrado);
+
+                if(respuesta)
+                {
+                    await _fireBaseservice.EliminarStorage("carpeta_usuario", nombreFoto);
+                }
+                return true;
+
+            }
+            catch
+            {
+                throw;
+            }
         }
 
 
-        // **** ESTOS METODOS VAN EN EL FORMULARIO DEL PERFIL DEL USUARIO
+        // Logica para obtener usuario por correo y clave
+        public async Task<Usuario> OtenerPorCredenciales(string correo, string clave)
+        {
+            string clave_encriptada = _utilidadesService.ConvertirSha256(clave); // encriptamos la clave
+            Usuario usuario_encontrado = await _repository.Obtener(u => u.Correo.Equals(correo) && u.Clave.Equals(clave_encriptada));
+            return usuario_encontrado;
 
-        public Task<bool> GuardarPerfil(Usuario entidad)
-        {
-            throw new NotImplementedException();
         }
-        public Task<bool> CambiarClave(int IdUsuario, string ClaveActual, string ClaveNueva)
+
+
+        // Logica para obtener usuario por Id
+        public async Task<Usuario> OtenerPorId(int IdUsuario)
         {
-            throw new NotImplementedException();
+            IQueryable<Usuario> query = await _repository.Consultar(u => u.IdUsuario == IdUsuario);
+            Usuario resultado = query.Include(r => r.IdRolNavigation).FirstOrDefault();
+            return resultado;
         }
-        public Task<bool> ReestablecerClave(string correo, string UrlPlantillaCorreo)
+
+
+
+
+
+        // **** ESTOS METODOS VAN EN EL FORMULARIO DEL PERFIL DEL USUARIO **********
+
+        public async Task<bool> GuardarPerfil(Usuario entidad)
         {
-            throw new NotImplementedException();
+            try
+            {
+                Usuario usuario_encontrado = await _repository.Obtener(u => u.IdUsuario == entidad.IdUsuario) ?? throw new TaskCanceledException("El usuario no existe");
+
+                usuario_encontrado.Correo = entidad.Correo;
+                usuario_encontrado.Telefono = entidad.Telefono;
+
+                bool respuesta = await _repository.Editar(usuario_encontrado);
+                return respuesta;
+            }
+            catch
+            {
+                throw;
+            }
+        }
+
+
+        // Logica para cambiar la clave
+        public async Task<bool> CambiarClave(int IdUsuario, string ClaveActual, string ClaveNueva)
+        {
+            try
+            {
+                // validamos si el usuario existe o no
+                Usuario usuario_encontrado = await _repository.Obtener(u => u.IdUsuario == IdUsuario) ?? throw new TaskCanceledException("El usuario no existe");
+
+                // validamos si la clave ingresada es correcta
+                if(usuario_encontrado.Clave != _utilidadesService.ConvertirSha256(ClaveActual))
+                {
+                    throw new TaskCanceledException("La contraseña ingresada como actual no es correcta");
+                }
+
+                // hacemos la asignacion de la clave nueva
+                usuario_encontrado.Clave = _utilidadesService.ConvertirSha256(ClaveNueva);
+
+
+                // generamos una respuesta al cambio de la clave
+                bool respuesta = await _repository.Editar(usuario_encontrado);
+                return respuesta;
+            }
+            catch (Exception ex)
+            {
+                throw;
+            }
+        }
+
+
+        // Logica para reestablecer la contraseña
+        public async Task<bool> ReestablecerClave(string correo, string UrlPlantillaCorreo)
+        {
+            try
+            {
+                Usuario usuario_encontrado = await _repository.Obtener(u => u.Correo == correo) ?? throw new TaskCanceledException("No encontramos ningun usuario asociado");
+
+                string clave_generada = _utilidadesService.GenerarClave();
+                usuario_encontrado.Clave = _utilidadesService.ConvertirSha256(clave_generada);
+
+
+
+                // cear plantilla y enviar correo
+                UrlPlantillaCorreo = UrlPlantillaCorreo.Replace("[clave]", clave_generada); // pasamos parametros y le enviamos los datos del usuario
+
+                // leer la view del correo
+                string htmlCorreo = "";
+                HttpWebRequest request = (HttpWebRequest)WebRequest.Create(UrlPlantillaCorreo); // llamamos la url de la plantilla de enviar correo
+                HttpWebResponse response = (HttpWebResponse)request.GetResponse(); // obtenemos la respuesta de la solicitud anterior
+
+                if (response.StatusCode == HttpStatusCode.OK)
+                {
+                    using (Stream dataStream = response.GetResponseStream())
+                    {
+                        // es una respuesta de la solicitud a la url de la plantilla
+                        StreamReader readerStream = null;
+                        if (response.CharacterSet == null)
+                        {
+                            readerStream = new StreamReader(dataStream);
+                        }
+                        else
+                        {
+                            readerStream = new StreamReader(dataStream, Encoding.GetEncoding(response.CharacterSet));
+                        }
+
+                        htmlCorreo = readerStream.ReadToEnd();
+                        response.Close();
+                        readerStream.Close();
+                    }
+                }
+
+                
+                // Creando el correo
+                bool correo_enviado = false;
+
+                // validando que el html no este vacio
+                if (htmlCorreo != "")
+                {
+                    correo_enviado = await _correoService.EnviarCorreo(correo, "Contraseña reestablecida", htmlCorreo);
+                }
+                // verificando si el correo se encio correctamente
+                if (!correo_enviado)
+                {
+                    throw new TaskCanceledException("Tenemos problemas. Por favor inténtalo de nuevo más tarde.");
+                }
+
+                bool respuesta = await _repository.Editar(usuario_encontrado);
+                return respuesta;
+            }
+            catch
+            {
+                throw;
+            }
         }
     }
 }
