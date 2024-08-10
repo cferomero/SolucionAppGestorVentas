@@ -10,7 +10,10 @@ builder.Services.AddControllersWithViews();
 // Todas la inyecciones de dependencias las llamamos en otra clase aparte
 builder.Services.InyectarDependencias(builder.Configuration);
 
+
+/* LA ÚLTIMA VERSIÓN DEL NUGGET AUTOMAPER YA TRAE IMPLEMENTADO EL NUGGER INYECTION DEPENDENCY DE MICROSOFT */
 builder.Services.AddAutoMapper(typeof(AutoMapperProfile)); // Inyectamos toda la configuracion del automapper en nuestra dependencia
+
 
 var app = builder.Build();
 

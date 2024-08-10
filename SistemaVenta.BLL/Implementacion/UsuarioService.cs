@@ -36,7 +36,6 @@ namespace SistemaVenta.BLL.Implementacion
 
         // *** METODOS DEL USUARIO ****
         
-        
         public async Task<List<Usuario>> Lista()
         {
             IQueryable<Usuario> query = await _repository.Consultar();
