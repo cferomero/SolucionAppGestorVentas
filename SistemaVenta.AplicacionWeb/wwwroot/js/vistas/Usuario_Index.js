@@ -88,8 +88,6 @@ $(document).ready(function () {
 
 
 
-
-
 // FUNCIONES PARA CREAR Y EDITAR USUARIO
 
  //En caso que el modelo este vacio le pasamos el objeto inicial
@@ -112,9 +110,145 @@ $("#btnNuevo").click(function () {
     MostrarModal()
 })
 
-// boton nuevo Usuario
+
+
+// ***** FUNCIONALIDAD BOTON GUARDAR *******
 $("#btnGuardar").click(function () {
-    debugger;
+    //debugger;
     const inputs = $("input.input-validar").serializeArray();
     const inputsSinValor = inputs.filter((item) => item.value.trim() == "") // filtrar los inputs que no tengan ningun valor
+
+
+    // Validar que el valor del campo este completo; y mostrar una notificación
+    if (inputsSinValor.length > 0) {
+        const mensaje = `Debe completar el campo: "${inputsSinValor[0].name}"`;
+        toastr.warning("", mensaje);
+        $(`input[name="${inputsSinValor[0].name}"]`).focus();
+        return;
+    }
+
+
+    const modelo = structuredClone(MODELO_BASE); // Clonar la estructura del modelo base
+    modelo['idUsuario'] = parseInt($("#txtId").val()); // Convirtiendo el idUsuario a INT y pasandolo a idUsuario del modelo
+    modelo['nombre']    = $("#txtNombre").val();
+    modelo['correo']    = $("#txtCorreo").val();
+    modelo['telefono']  = $("#txtTelefono").val();
+    modelo['idRol']     = $("#cboRol").val();
+    modelo['esActivo'] = $("#cboEstado").val();
+
+
+    const inputFoto = document.getElementById('txtFoto');
+
+    const formData = new FormData(); // añadimos una nueva instancia de FormData()
+    formData.append("foto", inputFoto.files[0]); // insertando el primer elemento
+    formData.append("modelo", JSON.stringify(modelo)); // convirtiendo nuestro modelo a un cadena de texto con stringify
+
+    $("#modalData").find("div.modal-content").LoadingOverlay("show");
+
+
+    // Condicional para crear el usuario inexistente y lo creamos
+    if (modelo.idUsuario == 0) {
+
+        // Hacer uso del metodo CREAR en el usuarioController
+        fetch("/Usuario/Crear", {
+            method: "POST",
+            body: formData
+        })
+            .then(response => {
+                $("#modalData").find("div.modal-content").LoadingOverlay("hide");
+                return response.ok ? response.json() : Promise.reject(response)
+            })
+            .then(responseJson => {
+                if (responseJson.estado) {
+                    tablaData.row.add(responseJson.objeto).draw(false);
+                    $("#modalData").modal("hide");
+                    swal("Listo", "El usuario fue creado!", "success");
+                } else {
+                    swal("Lo sentimos", responseJson.mensaje, "error");
+                }
+            })
+    } else { // si el usuario existe lo editamos       
+        fetch("/Usuario/Editar", { // Editamos un usuario existente
+            method: "PUT",
+            body: formData
+        })
+            .then(response => {
+                $("#modalData").find("div.modal-content").LoadingOverlay("hide");
+                return response.ok ? response.json() : Promise.reject(response)
+            })
+            .then(responseJson => {
+                if (responseJson.estado) {
+                    tablaData.row(filaSeleccionada).data(responseJson.objeto).draw(false);
+                    filaSeleccionada = null;
+                    $("#modalData").modal("hide");
+                    swal("Listo", "El usuario fue actualizado!", "success");
+                } else {
+                    swal("Lo sentimos", responseJson.mensaje, "error");
+                }
+            })
+    }
+})
+
+
+
+// ****** FUNCIONALIDAD BOTON EDITAR *******
+let filaSeleccionada;
+
+// Validando que me muestre los datos también cuando esté en tamaño responsivo
+$("#tbdata tbody").on("click", ".btn-editar", function () {
+    if ($(this).closest("tr").hasClass("child")) {
+        filaSeleccionada = $(this).closest("tr").prev();
+    } else {
+        filaSeleccionada = $(this).closest("tr");
+    }
+    // Mostrar la informacion del usuario en el modal
+    const data = tablaData.row(filaSeleccionada).data();
+    MostrarModal(data);
+})
+
+
+// ****** FUNCIONALIDAD BOTON ELIMINAR *******
+$("#tbdata tbody").on("click", ".btn-eliminar", function () {
+    let fila;
+    if ($(this).closest("tr").hasClass("child")) {
+        fila = $(this).closest("tr").prev();
+    } else {
+        fila = $(this).closest("tr");
+    }
+    // Mostrar la informacion del usuario en el modal
+    const data = tablaData.row(filaSeleccionada).data();
+    swal({
+        title: '¿Está seguro de eliminar?',
+        text: `Eliminar al usuario "${data.nombre}"`,
+        type: 'warning',
+        showCancelButton: true,
+        confirmButtonClass: 'btn-danger',
+        confirmButtonText: 'Si, eliminar',
+        cancelButtonText: 'No, cancelar',
+        closeOnConfirm: false,
+        closeOnCancel: true
+    },
+        function (respuesta) {
+            if (respuesta) {
+                $('.showSweetAlert').LoadingOverlay('show');
+
+                fetch(`/Usuario/Eliminar?IdUsuario=${data.idUsuario}`, { // Editamos un usuario existente
+                    method: "DELETE"
+                })
+                    .then(response => {
+                        $('.showSweetAlert').LoadingOverlay('hide');
+                        return response.ok ? response.json() : Promise.reject(response)
+                    })
+                    .then(responseJson => {
+                        if (responseJson.estado) {
+                            tablaData.row(fila).remove().draw();
+                            swal("Listo", "El usuario fue eliminado!", "success");
+                        } else {
+                            swal("Lo sentimos", responseJson.mensaje, "error");
+                        }
+                    })
+            }
+        }
+    );
+
 })
