@@ -1,4 +1,6 @@
-﻿const MODELO_BASE = {
+﻿/* MODULO DEL USUARIO */
+
+const MODELO_BASE = {
     idUsuario: 0,
     nombre: "",
     correo: "",
