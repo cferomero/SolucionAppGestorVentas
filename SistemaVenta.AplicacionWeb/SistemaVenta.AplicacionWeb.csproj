@@ -7,14 +7,17 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Content Remove="wwwroot\js\vistas\Negocio_Index.js" />
     <Content Remove="wwwroot\js\vistas\Usuario_Index.js" />
   </ItemGroup>
 
   <ItemGroup>
+    <_ContentIncludedByDefault Remove="wwwroot\js\vistas\Negocio_Index.js" />
     <_ContentIncludedByDefault Remove="wwwroot\js\vistas\Usuario_Index.js" />
   </ItemGroup>
 
   <ItemGroup>
+    <None Include="wwwroot\js\vistas\Negocio_Index.js" />
     <None Include="wwwroot\js\vistas\Usuario_Index.js" />
   </ItemGroup>
 
